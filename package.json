@@ -1,0 +1,33 @@
+{
+  "name": "MobileSSH",
+  "version": "1.0.0",
+  "description": "React Native SSH Client for Android",
+  "main": "index.js",
+  "scripts": {
+    "start": "react-native start",
+    "android": "react-native run-android",
+    "install": "npm install && cd android && ./gradlew clean",
+    "build": "cd android && ./gradlew assembleRelease"
+  },
+  "dependencies": {
+    "react": "18.2.0",
+    "react-native": "0.73.6",
+    "react-native-ssh2": "^1.0.0",
+    "@react-navigation/native": "^6.1.9",
+    "@react-navigation/stack": "^6.3.20",
+    "react-native-screens": "^3.29.0",
+    "react-native-safe-area-context": "^4.8.2",
+    "react-native-gesture-handler": "^2.14.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.23.7",
+    "@babel/preset-env": "^7.23.7",
+    "@babel/runtime": "^7.23.7",
+    "@react-native/babel-preset": "^0.73.19",
+    "@react-native/metro-config": "^0.73.3",
+    "metro-react-native-babel-preset": "^0.77.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
