@@ -1,6 +1,6 @@
 /**
  * MobileSSH - 主应用入口
- * 配置导航和全局样式
+ * 配置导航：Login → Terminal
  */
 
 import React from 'react';
@@ -24,16 +24,23 @@ const App = () => {
           headerTitleStyle: {
             fontWeight: 'bold',
           },
+          headerBackTitleVisible: false,
         }}>
         <Stack.Screen
           name="Login"
           component={LoginScreen}
-          options={{title: 'SSH 连接'}}
+          options={{
+            title: 'SSH 连接',
+            headerLeft: null,
+          }}
         />
         <Stack.Screen
           name="Terminal"
           component={TerminalScreen}
-          options={{title: 'SSH 终端'}}
+          options={{
+            title: 'SSH 终端',
+            headerBackTitle: '返回',
+          }}
         />
       </Stack.Navigator>
     </NavigationContainer>

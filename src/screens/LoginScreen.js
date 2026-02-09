@@ -1,6 +1,6 @@
 /**
- * 登录页面
- * 功能：输入SSH服务器信息，连接SSH服务器
+ * 登录页面 - SSH连接
+ * 功能：输入服务器信息 → 建立SSH连接 → 跳转终端页
  */
 
 import React, {useState} from 'react';
@@ -16,10 +16,10 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import SSH2 from 'react-native-ssh2';
 import {colors, spacing, globalStyles} from '../styles/globalStyles';
 
 const LoginScreen = ({navigation}) => {
-  // 表单状态
   const [host, setHost] = useState('');
   const [port, setPort] = useState('22');
   const [username, setUsername] = useState('');
@@ -27,31 +27,47 @@ const LoginScreen = ({navigation}) => {
   const [loading, setLoading] = useState(false);
 
   /**
+   * 验证IP地址格式
+   */
+  const validateIP = (ip) => {
+    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    if (!ipRegex.test(ip)) return false;
+    return ip.split('.').every(num => parseInt(num) >= 0 && parseInt(num) <= 255);
+  };
+
+  /**
    * 表单验证
-   * @returns {boolean} 验证是否通过
    */
   const validateForm = () => {
     if (!host.trim()) {
       Alert.alert('错误', '请输入服务器地址');
       return false;
     }
+    
+    // IP格式验证（简单）
+    if (!validateIP(host.trim()) && !host.includes('.')) {
+      Alert.alert('错误', '请输入有效的IP地址或域名');
+      return false;
+    }
+    
     if (!port.trim()) {
       Alert.alert('错误', '请输入端口号');
       return false;
     }
+    
+    const portNum = parseInt(port, 10);
+    if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
+      Alert.alert('错误', '端口号必须在 1-65535 之间');
+      return false;
+    }
+    
     if (!username.trim()) {
       Alert.alert('错误', '请输入用户名');
       return false;
     }
+    
     if (!password) {
       Alert.alert('错误', '请输入密码');
-      return false;
-    }
-    
-    // 验证端口号格式
-    const portNum = parseInt(port, 10);
-    if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
-      Alert.alert('错误', '端口号必须在 1-65535 之间');
       return false;
     }
     
@@ -59,51 +75,74 @@ const LoginScreen = ({navigation}) => {
   };
 
   /**
-   * 连接SSH服务器
+   * SSH连接核心逻辑
    */
   const handleConnect = async () => {
-    // 验证表单
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setLoading(true);
 
     try {
-      // 注意：react-native-ssh2 需要原生模块支持
-      // 这里使用模拟连接，实际项目中需要集成原生SSH库
+      // 创建SSH客户端实例
+      const sshClient = new SSH2();
       
-      // 模拟连接延迟
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // 模拟连接成功
-      const connectionInfo = {
-        host: host.trim(),
-        port: parseInt(port, 10),
-        username: username.trim(),
-        password: password,
-      };
+      // 设置连接超时
+      const connectPromise = new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('连接超时'));
+        }, 10000);
 
-      // 跳转到终端页面，传递连接信息
-      navigation.navigate('Terminal', {connection: connectionInfo});
-      
-      // 清空密码（安全考虑）
+        sshClient.on('ready', () => {
+          clearTimeout(timeout);
+          resolve(sshClient);
+        });
+
+        sshClient.on('error', (err) => {
+          clearTimeout(timeout);
+          reject(err);
+        });
+
+        // 发起SSH连接
+        sshClient.connect({
+          host: host.trim(),
+          port: parseInt(port, 10),
+          username: username.trim(),
+          password: password,
+        });
+      });
+
+      // 等待连接完成
+      const client = await connectPromise;
+
+      // 连接成功，跳转到终端页并传递SSH会话实例
+      navigation.navigate('Terminal', {
+        sshClient: client,
+        connectionInfo: {
+          host: host.trim(),
+          port: parseInt(port, 10),
+          username: username.trim(),
+        },
+      });
+
+      // 清空密码
       setPassword('');
-      
+
     } catch (error) {
-      // 处理各种错误情况
+      // 错误处理
       let errorMessage = '连接失败';
-      
-      if (error.message.includes('timeout')) {
+
+      if (error.message.includes('timeout') || error.message.includes('ETIMEDOUT')) {
         errorMessage = '连接超时，请检查网络和服务器地址';
-      } else if (error.message.includes('authentication')) {
+      } else if (error.message.includes('ECONNREFUSED')) {
+        errorMessage = '端口拒绝连接，请检查端口号和SSH服务状态';
+      } else if (error.message.includes('authentication') || error.message.includes('auth')) {
         errorMessage = '认证失败，请检查用户名和密码';
-      } else if (error.message.includes('refused')) {
-        errorMessage = '连接被拒绝，请检查服务器地址和端口';
+      } else if (error.message.includes('ENETUNREACH') || error.message.includes('EHOSTUNREACH')) {
+        errorMessage = '网络不通，请检查网络连接';
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       Alert.alert('连接失败', errorMessage);
     } finally {
       setLoading(false);
@@ -118,11 +157,9 @@ const LoginScreen = ({navigation}) => {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled">
         <View style={styles.content}>
-          {/* 标题 */}
           <Text style={styles.title}>SSH 连接</Text>
           <Text style={styles.subtitle}>请输入服务器信息</Text>
 
-          {/* 服务器地址 */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>服务器地址</Text>
             <TextInput
@@ -137,7 +174,6 @@ const LoginScreen = ({navigation}) => {
             />
           </View>
 
-          {/* 端口 */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>端口</Text>
             <TextInput
@@ -151,7 +187,6 @@ const LoginScreen = ({navigation}) => {
             />
           </View>
 
-          {/* 用户名 */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>用户名</Text>
             <TextInput
@@ -166,7 +201,6 @@ const LoginScreen = ({navigation}) => {
             />
           </View>
 
-          {/* 密码 */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>密码</Text>
             <TextInput
@@ -180,7 +214,6 @@ const LoginScreen = ({navigation}) => {
             />
           </View>
 
-          {/* 连接按钮 */}
           <TouchableOpacity
             style={[
               globalStyles.button,
@@ -196,7 +229,6 @@ const LoginScreen = ({navigation}) => {
             )}
           </TouchableOpacity>
 
-          {/* 提示信息 */}
           <Text style={styles.hint}>
             提示：请确保您的设备可以访问目标服务器
           </Text>
