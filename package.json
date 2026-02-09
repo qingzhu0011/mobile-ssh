@@ -4,13 +4,11 @@
   "private": true,
   "scripts": {
     "start": "react-native start",
-    "android": "react-native run-android",
-    "install": "npm install && cd android && ./gradlew clean"
+    "android": "react-native run-android"
   },
   "dependencies": {
     "react": "18.2.0",
     "react-native": "0.73.6",
-    "react-native-ssh2": "^1.0.0",
     "@react-navigation/native": "^6.1.9",
     "@react-navigation/stack": "^6.3.20",
     "react-native-screens": "^3.29.0",

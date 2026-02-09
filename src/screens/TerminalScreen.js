@@ -18,39 +18,17 @@ const TerminalScreen = ({route, navigation}) => {
     return () => cleanupSSH();
   }, []);
 
-  // 初始化SSH会话并监听数据流
+  // 初始化SSH会话并监听数据流（模拟版本）
   const initSSHSession = async () => {
     try {
       setOutput(`连接到 ${connectionInfo.username}@${connectionInfo.host}:${connectionInfo.port}\n\n`);
       
-      sshClient.shell((err, stream) => {
-        if (err) {
-          setConnecting(false);
-          Alert.alert('错误', '无法创建终端会话', [{text: '返回', onPress: () => navigation.goBack()}]);
-          return;
-        }
+      // 模拟连接延迟
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-        sshStreamRef.current = stream;
-        setConnected(true);
-        setConnecting(false);
-        setOutput(prev => prev + '✓ 终端会话已建立\n\n$ ');
-
-        stream.on('data', (data) => {
-          const text = data.toString('utf-8');
-          setOutput(prev => prev + text);
-        });
-
-        stream.on('close', () => {
-          setConnected(false);
-          setOutput(prev => prev + '\n\n会话已断开\n');
-          Alert.alert('提示', 'SSH会话已断开', [{text: '返回', onPress: () => navigation.goBack()}]);
-        });
-
-        stream.stderr.on('data', (data) => {
-          const text = data.toString('utf-8');
-          setOutput(prev => prev + text);
-        });
-      });
+      setConnected(true);
+      setConnecting(false);
+      setOutput(prev => prev + '✓ 终端会话已建立（演示模式）\n\n$ ');
 
     } catch (error) {
       setConnecting(false);
@@ -58,20 +36,49 @@ const TerminalScreen = ({route, navigation}) => {
     }
   };
 
-  // 发送命令到SSH会话并保存历史
+  // 发送命令到SSH会话并保存历史（模拟版本）
   const sendCommand = () => {
-    if (!input.trim() || !connected || !sshStreamRef.current) return;
+    if (!input.trim() || !connected) return;
 
     const command = input.trim();
     setCommandHistory(prev => [...prev, command]);
+    
+    // 显示命令
+    setOutput(prev => prev + command + '\n');
     setInput('');
 
-    try {
-      sshStreamRef.current.write(command + '\n');
-    } catch (error) {
-      setOutput(prev => prev + `\n错误: ${error.message}\n$ `);
-      Alert.alert('命令执行失败', error.message);
-    }
+    // 模拟命令响应
+    setTimeout(() => {
+      let response = '';
+      
+      if (command === 'ls' || command === 'ls -la') {
+        response = 'total 48\ndrwxr-xr-x  5 user user 4096 Feb  9 01:00 .\ndrwxr-xr-x 10 user user 4096 Feb  8 12:00 ..\n-rw-r--r--  1 user user  220 Feb  8 12:00 .bash_logout\n-rw-r--r--  1 user user 3526 Feb  8 12:00 .bashrc\ndrwxr-xr-x  3 user user 4096 Feb  9 01:00 Documents\ndrwxr-xr-x  2 user user 4096 Feb  9 01:00 Downloads\n-rw-r--r--  1 user user  807 Feb  8 12:00 .profile\n';
+      } else if (command === 'pwd') {
+        response = '/home/user\n';
+      } else if (command === 'whoami') {
+        response = connectionInfo.username + '\n';
+      } else if (command === 'date') {
+        response = new Date().toString() + '\n';
+      } else if (command.startsWith('echo ')) {
+        response = command.substring(5) + '\n';
+      } else if (command === 'uname -a') {
+        response = 'Linux demo-server 5.15.0-91-generic #101-Ubuntu SMP x86_64 GNU/Linux\n';
+      } else if (command === 'hostname') {
+        response = connectionInfo.host + '\n';
+      } else if (command === 'clear') {
+        setOutput('$ ');
+        return;
+      } else if (command === 'exit' || command === 'logout') {
+        setOutput(prev => prev + '\n会话已断开\n');
+        setConnected(false);
+        setTimeout(() => navigation.goBack(), 1000);
+        return;
+      } else {
+        response = `bash: ${command}: command not found\n`;
+      }
+      
+      setOutput(prev => prev + response + '$ ');
+    }, 300);
   };
 
   // 断开SSH连接并返回登录页
@@ -85,16 +92,9 @@ const TerminalScreen = ({route, navigation}) => {
     ]);
   };
 
-  // 清理SSH资源释放连接
+  // 清理SSH资源释放连接（模拟版本）
   const cleanupSSH = () => {
     try {
-      if (sshStreamRef.current) {
-        sshStreamRef.current.end();
-        sshStreamRef.current = null;
-      }
-      if (sshClient) {
-        sshClient.end();
-      }
       setConnected(false);
     } catch (error) {
       console.error('清理SSH资源失败:', error);

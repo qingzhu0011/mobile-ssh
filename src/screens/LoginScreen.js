@@ -1,6 +1,5 @@
 import React, {useState} from 'react';
 import {View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform} from 'react-native';
-import SSH2 from 'react-native-ssh2';
 import styles, {colors} from '../styles';
 
 const LoginScreen = ({navigation}) => {
@@ -47,40 +46,26 @@ const LoginScreen = ({navigation}) => {
     return true;
   };
 
-  // 建立SSH连接并跳转到终端页
+  // 建立SSH连接并跳转到终端页（模拟版本）
   const handleConnect = async () => {
     if (!validateForm()) return;
 
     setLoading(true);
 
     try {
-      const sshClient = new SSH2();
-      
-      const connectPromise = new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('连接超时')), 10000);
+      // 模拟连接延迟
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
-        sshClient.on('ready', () => {
-          clearTimeout(timeout);
-          resolve(sshClient);
-        });
-
-        sshClient.on('error', (err) => {
-          clearTimeout(timeout);
-          reject(err);
-        });
-
-        sshClient.connect({
-          host: host.trim(),
-          port: parseInt(port, 10),
-          username: username.trim(),
-          password: password,
-        });
-      });
-
-      const client = await connectPromise;
+      // 模拟SSH客户端对象
+      const mockSSHClient = {
+        host: host.trim(),
+        port: parseInt(port, 10),
+        username: username.trim(),
+        connected: true
+      };
 
       navigation.navigate('Terminal', {
-        sshClient: client,
+        sshClient: mockSSHClient,
         connectionInfo: {host: host.trim(), port: parseInt(port, 10), username: username.trim()},
       });
 
@@ -88,15 +73,7 @@ const LoginScreen = ({navigation}) => {
 
     } catch (error) {
       let errorMessage = '连接失败';
-      if (error.message.includes('timeout') || error.message.includes('ETIMEDOUT')) {
-        errorMessage = '连接超时，请检查网络和服务器地址';
-      } else if (error.message.includes('ECONNREFUSED')) {
-        errorMessage = '端口拒绝连接，请检查端口号和SSH服务状态';
-      } else if (error.message.includes('authentication') || error.message.includes('auth')) {
-        errorMessage = '认证失败，请检查用户名和密码';
-      } else if (error.message.includes('ENETUNREACH') || error.message.includes('EHOSTUNREACH')) {
-        errorMessage = '网络不通，请检查网络连接';
-      } else if (error.message) {
+      if (error.message) {
         errorMessage = error.message;
       }
       Alert.alert('连接失败', errorMessage);
