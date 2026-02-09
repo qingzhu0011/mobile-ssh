@@ -1,10 +1,10 @@
 /**
- * 全局样式 - 适配安卓移动端
+ * 全局样式统一入口
  */
 
 import {StyleSheet, Dimensions} from 'react-native';
 
-const {width, height} = Dimensions.get('window');
+const {width} = Dimensions.get('window');
 
 export const colors = {
   primary: '#007AFF',
@@ -25,7 +25,7 @@ export const spacing = {
   xl: 32,
 };
 
-export const globalStyles = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -38,7 +38,7 @@ export const globalStyles = StyleSheet.create({
     padding: spacing.lg,
     justifyContent: 'center',
   },
-  input: {
+  textInput: {
     backgroundColor: colors.surface,
     color: colors.text,
     padding: spacing.md,
@@ -108,7 +108,7 @@ export const globalStyles = StyleSheet.create({
     flex: 1,
     padding: spacing.md,
   },
-  terminalText: {
+  terminalOutput: {
     fontFamily: 'monospace',
     fontSize: 13,
     color: colors.success,
@@ -165,10 +165,4 @@ export const globalStyles = StyleSheet.create({
   },
 });
 
-export const responsive = {
-  isSmallScreen: width < 360,
-  isMediumScreen: width >= 360 && width < 768,
-  isLargeScreen: width >= 768,
-  screenWidth: width,
-  screenHeight: height,
-};
+export default styles;

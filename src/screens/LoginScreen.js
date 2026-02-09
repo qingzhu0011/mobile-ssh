@@ -1,11 +1,7 @@
-/**
- * 登录页面 - SSH连接
- */
-
 import React, {useState} from 'react';
 import {View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform} from 'react-native';
 import SSH2 from 'react-native-ssh2';
-import {colors, globalStyles} from '../styles/globalStyles';
+import styles, {colors} from '../styles';
 
 const LoginScreen = ({navigation}) => {
   const [host, setHost] = useState('');
@@ -14,14 +10,14 @@ const LoginScreen = ({navigation}) => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // 验证IP地址格式
+  // 校验IP地址格式合法性
   const validateIP = (ip) => {
     const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
     if (!ipRegex.test(ip)) return false;
     return ip.split('.').every(num => parseInt(num) >= 0 && parseInt(num) <= 255);
   };
 
-  // 表单验证：非空+格式检查
+  // 校验表单输入完整性和格式
   const validateForm = () => {
     if (!host.trim()) {
       Alert.alert('错误', '请输入服务器地址');
@@ -51,7 +47,7 @@ const LoginScreen = ({navigation}) => {
     return true;
   };
 
-  // SSH连接核心逻辑
+  // 建立SSH连接并跳转到终端页
   const handleConnect = async () => {
     if (!validateForm()) return;
 
@@ -60,7 +56,6 @@ const LoginScreen = ({navigation}) => {
     try {
       const sshClient = new SSH2();
       
-      // Promise包装SSH连接，10秒超时
       const connectPromise = new Promise((resolve, reject) => {
         const timeout = setTimeout(() => reject(new Error('连接超时')), 10000);
 
@@ -74,7 +69,6 @@ const LoginScreen = ({navigation}) => {
           reject(err);
         });
 
-        // 发起SSH连接
         sshClient.connect({
           host: host.trim(),
           port: parseInt(port, 10),
@@ -85,7 +79,6 @@ const LoginScreen = ({navigation}) => {
 
       const client = await connectPromise;
 
-      // 连接成功，跳转到终端页并传递SSH会话实例
       navigation.navigate('Terminal', {
         sshClient: client,
         connectionInfo: {host: host.trim(), port: parseInt(port, 10), username: username.trim()},
@@ -94,7 +87,6 @@ const LoginScreen = ({navigation}) => {
       setPassword('');
 
     } catch (error) {
-      // 错误分类处理
       let errorMessage = '连接失败';
       if (error.message.includes('timeout') || error.message.includes('ETIMEDOUT')) {
         errorMessage = '连接超时，请检查网络和服务器地址';
@@ -114,16 +106,16 @@ const LoginScreen = ({navigation}) => {
   };
 
   return (
-    <KeyboardAvoidingView style={globalStyles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView contentContainerStyle={globalStyles.scrollContent} keyboardShouldPersistTaps="handled">
-        <View style={globalStyles.content}>
-          <Text style={globalStyles.title}>SSH 连接</Text>
-          <Text style={globalStyles.subtitle}>请输入服务器信息</Text>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <View style={styles.content}>
+          <Text style={styles.title}>SSH 连接</Text>
+          <Text style={styles.subtitle}>请输入服务器信息</Text>
 
-          <View style={globalStyles.inputGroup}>
-            <Text style={globalStyles.label}>服务器地址</Text>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>服务器地址</Text>
             <TextInput
-              style={globalStyles.input}
+              style={styles.textInput}
               placeholder="例如: 192.168.1.100"
               placeholderTextColor={colors.textSecondary}
               value={host}
@@ -134,10 +126,10 @@ const LoginScreen = ({navigation}) => {
             />
           </View>
 
-          <View style={globalStyles.inputGroup}>
-            <Text style={globalStyles.label}>端口</Text>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>端口</Text>
             <TextInput
-              style={globalStyles.input}
+              style={styles.textInput}
               placeholder="默认: 22"
               placeholderTextColor={colors.textSecondary}
               value={port}
@@ -147,10 +139,10 @@ const LoginScreen = ({navigation}) => {
             />
           </View>
 
-          <View style={globalStyles.inputGroup}>
-            <Text style={globalStyles.label}>用户名</Text>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>用户名</Text>
             <TextInput
-              style={globalStyles.input}
+              style={styles.textInput}
               placeholder="例如: root"
               placeholderTextColor={colors.textSecondary}
               value={username}
@@ -161,10 +153,10 @@ const LoginScreen = ({navigation}) => {
             />
           </View>
 
-          <View style={globalStyles.inputGroup}>
-            <Text style={globalStyles.label}>密码</Text>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>密码</Text>
             <TextInput
-              style={globalStyles.input}
+              style={styles.textInput}
               placeholder="请输入密码"
               placeholderTextColor={colors.textSecondary}
               value={password}
@@ -175,13 +167,13 @@ const LoginScreen = ({navigation}) => {
           </View>
 
           <TouchableOpacity
-            style={[globalStyles.button, loading && globalStyles.buttonDisabled]}
+            style={[styles.button, loading && styles.buttonDisabled]}
             onPress={handleConnect}
             disabled={loading}>
-            {loading ? <ActivityIndicator color={colors.text} /> : <Text style={globalStyles.buttonText}>连接</Text>}
+            {loading ? <ActivityIndicator color={colors.text} /> : <Text style={styles.buttonText}>连接</Text>}
           </TouchableOpacity>
 
-          <Text style={globalStyles.hintText}>提示：请确保您的设备可以访问目标服务器</Text>
+          <Text style={styles.hintText}>提示：请确保您的设备可以访问目标服务器</Text>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
