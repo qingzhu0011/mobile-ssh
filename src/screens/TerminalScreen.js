@@ -1,6 +1,6 @@
 /**
- * 终端页面
- * 功能：显示SSH终端，执行命令，显示输出
+ * 终端页面 - SSH交互
+ * 功能：接收SSH会话 → 发送命令 → 回显结果 → 断开连接
  */
 
 import React, {useState, useEffect, useRef} from 'react';
@@ -17,121 +17,107 @@ import {
 import {colors, spacing, globalStyles} from '../styles/globalStyles';
 
 const TerminalScreen = ({route, navigation}) => {
-  const {connection} = route.params;
+  const {sshClient, connectionInfo} = route.params;
   
-  // 状态管理
   const [output, setOutput] = useState('');
   const [input, setInput] = useState('');
   const [connected, setConnected] = useState(false);
   const [connecting, setConnecting] = useState(true);
+  const [commandHistory, setCommandHistory] = useState([]);
   const scrollViewRef = useRef(null);
+  const sshStreamRef = useRef(null);
 
   /**
-   * 组件挂载时连接SSH
+   * 组件挂载时初始化SSH会话
    */
   useEffect(() => {
-    connectSSH();
+    initSSHSession();
     
-    // 组件卸载时断开连接
     return () => {
-      disconnectSSH();
+      cleanupSSH();
     };
   }, []);
 
   /**
-   * 连接SSH服务器
+   * 初始化SSH会话
    */
-  const connectSSH = async () => {
+  const initSSHSession = async () => {
     try {
-      setOutput(`正在连接到 ${connection.username}@${connection.host}:${connection.port}...\n`);
+      setOutput(`连接到 ${connectionInfo.username}@${connectionInfo.host}:${connectionInfo.port}\n\n`);
       
-      // 模拟连接延迟
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // 模拟连接成功
-      setConnected(true);
-      setConnecting(false);
-      setOutput(prev => prev + `\n✓ 连接成功！\n\n欢迎使用 MobileSSH\n输入命令开始使用...\n\n$ `);
-      
-      // 注意：实际项目中需要使用 react-native-ssh2 或其他SSH库
-      // 这里是模拟实现，用于演示UI和交互流程
-      
+      // 创建shell会话
+      sshClient.shell((err, stream) => {
+        if (err) {
+          setConnecting(false);
+          Alert.alert('错误', '无法创建终端会话', [
+            {text: '返回', onPress: () => navigation.goBack()},
+          ]);
+          return;
+        }
+
+        sshStreamRef.current = stream;
+        setConnected(true);
+        setConnecting(false);
+        setOutput(prev => prev + '✓ 终端会话已建立\n\n$ ');
+
+        // 监听输出数据
+        stream.on('data', (data) => {
+          const text = data.toString('utf-8');
+          setOutput(prev => prev + text);
+        });
+
+        // 监听会话关闭
+        stream.on('close', () => {
+          setConnected(false);
+          setOutput(prev => prev + '\n\n会话已断开\n');
+          Alert.alert('提示', 'SSH会话已断开', [
+            {text: '返回', onPress: () => navigation.goBack()},
+          ]);
+        });
+
+        // 监听错误
+        stream.stderr.on('data', (data) => {
+          const text = data.toString('utf-8');
+          setOutput(prev => prev + text);
+        });
+      });
+
     } catch (error) {
       setConnecting(false);
-      Alert.alert('连接失败', error.message, [
+      Alert.alert('错误', error.message, [
         {text: '返回', onPress: () => navigation.goBack()},
       ]);
     }
   };
 
   /**
-   * 断开SSH连接
-   */
-  const disconnectSSH = () => {
-    if (connected) {
-      setOutput(prev => prev + '\n\n连接已断开\n');
-      setConnected(false);
-    }
-  };
-
-  /**
    * 执行命令
    */
-  const executeCommand = async () => {
-    if (!input.trim() || !connected) {
+  const executeCommand = () => {
+    if (!input.trim() || !connected || !sshStreamRef.current) {
       return;
     }
 
     const command = input.trim();
+    
+    // 保存到历史记录
+    setCommandHistory(prev => [...prev, command]);
+    
+    // 清空输入框
     setInput('');
 
-    // 显示命令
-    setOutput(prev => prev + command + '\n');
-
     try {
-      // 模拟命令执行
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // 模拟命令输出
-      let result = '';
-      
-      if (command === 'ls' || command === 'ls -la') {
-        result = 'total 48\ndrwxr-xr-x  5 user user 4096 Feb  8 23:00 .\ndrwxr-xr-x 10 user user 4096 Feb  8 22:00 ..\n-rw-r--r--  1 user user  220 Feb  8 22:00 .bash_logout\n-rw-r--r--  1 user user 3526 Feb  8 22:00 .bashrc\ndrwxr-xr-x  2 user user 4096 Feb  8 22:30 Documents\ndrwxr-xr-x  2 user user 4096 Feb  8 22:30 Downloads\n';
-      } else if (command === 'pwd') {
-        result = '/home/user\n';
-      } else if (command === 'whoami') {
-        result = connection.username + '\n';
-      } else if (command === 'date') {
-        result = new Date().toString() + '\n';
-      } else if (command === 'clear') {
-        setOutput('$ ');
-        return;
-      } else if (command === 'exit') {
-        disconnectSSH();
-        Alert.alert('提示', '连接已断开', [
-          {text: '返回', onPress: () => navigation.goBack()},
-        ]);
-        return;
-      } else if (command.startsWith('echo ')) {
-        result = command.substring(5) + '\n';
-      } else {
-        result = `bash: ${command}: command not found\n`;
-      }
-      
-      setOutput(prev => prev + result + '$ ');
-      
-      // 注意：实际项目中需要通过SSH连接执行真实命令
-      // 例如使用 react-native-ssh2:
-      // const result = await sshClient.exec(command);
-      // setOutput(prev => prev + result + '$ ');
+      // 发送命令到SSH会话
+      sshStreamRef.current.write(command + '\n');
       
     } catch (error) {
-      setOutput(prev => prev + `错误: ${error.message}\n$ `);
+      setOutput(prev => prev + `\n错误: ${error.message}\n$ `);
+      Alert.alert('命令执行失败', error.message);
     }
   };
 
   /**
-   * 处理断开连接按钮
+   * 断开SSH连接
    */
   const handleDisconnect = () => {
     Alert.alert(
@@ -143,7 +129,7 @@ const TerminalScreen = ({route, navigation}) => {
           text: '断开',
           style: 'destructive',
           onPress: () => {
-            disconnectSSH();
+            cleanupSSH();
             navigation.goBack();
           },
         },
@@ -151,12 +137,30 @@ const TerminalScreen = ({route, navigation}) => {
     );
   };
 
+  /**
+   * 清理SSH资源
+   */
+  const cleanupSSH = () => {
+    try {
+      if (sshStreamRef.current) {
+        sshStreamRef.current.end();
+        sshStreamRef.current = null;
+      }
+      if (sshClient) {
+        sshClient.end();
+      }
+      setConnected(false);
+    } catch (error) {
+      console.error('清理SSH资源失败:', error);
+    }
+  };
+
   // 连接中状态
   if (connecting) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>正在连接...</Text>
+        <Text style={styles.loadingText}>正在初始化终端...</Text>
       </View>
     );
   }
