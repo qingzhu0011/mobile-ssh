@@ -1,13 +1,11 @@
 {
-  "name": "MobileSSH",
+  "name": "mobile-ssh",
   "version": "1.0.0",
-  "description": "React Native SSH Client for Android",
-  "main": "index.js",
+  "private": true,
   "scripts": {
     "start": "react-native start",
     "android": "react-native run-android",
-    "install": "npm install && cd android && ./gradlew clean",
-    "build": "cd android && ./gradlew assembleRelease"
+    "install": "npm install && cd android && ./gradlew clean"
   },
   "dependencies": {
     "react": "18.2.0",

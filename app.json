@@ -1,6 +1,10 @@
 {
-  "name": "MobileSSH",
+  "name": "mobile-ssh",
   "displayName": "MobileSSH",
   "version": "1.0.0",
-  "description": "SSH Client for Android"
+  "description": "SSH Client for Android",
+  "main": "App.js",
+  "android": {
+    "package": "com.mobilessh"
+  }
 }
