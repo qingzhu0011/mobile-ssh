@@ -1,6 +1,5 @@
 /**
  * MobileSSH - 主应用入口
- * 配置导航：Login → Terminal
  */
 
 import React from 'react';

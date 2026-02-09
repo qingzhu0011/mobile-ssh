@@ -1,6 +1,5 @@
 /**
  * 终端页面 - SSH交互
- * 功能：接收SSH会话 → 发送命令 → 回显结果 → 断开连接
  */
 
 import React, {useState, useEffect, useRef} from 'react';
@@ -14,7 +13,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import {colors, spacing, globalStyles} from '../styles/globalStyles';
+import {colors, spacing, globalStyles} from '../styles/styles';
 
 const TerminalScreen = ({route, navigation}) => {
   const {sshClient, connectionInfo} = route.params;
@@ -27,20 +26,14 @@ const TerminalScreen = ({route, navigation}) => {
   const scrollViewRef = useRef(null);
   const sshStreamRef = useRef(null);
 
-  /**
-   * 组件挂载时初始化SSH会话
-   */
   useEffect(() => {
     initSSHSession();
-    
     return () => {
       cleanupSSH();
     };
   }, []);
 
-  /**
-   * 初始化SSH会话
-   */
+  // 初始化SSH会话
   const initSSHSession = async () => {
     try {
       setOutput(`连接到 ${connectionInfo.username}@${connectionInfo.host}:${connectionInfo.port}\n\n`);
@@ -75,7 +68,7 @@ const TerminalScreen = ({route, navigation}) => {
           ]);
         });
 
-        // 监听错误
+        // 监听错误输出
         stream.stderr.on('data', (data) => {
           const text = data.toString('utf-8');
           setOutput(prev => prev + text);
@@ -90,35 +83,27 @@ const TerminalScreen = ({route, navigation}) => {
     }
   };
 
-  /**
-   * 执行命令
-   */
+  // 执行命令
   const executeCommand = () => {
-    if (!input.trim() || !connected || !sshStreamRef.current) {
-      return;
-    }
+    if (!input.trim() || !connected || !sshStreamRef.current) return;
 
     const command = input.trim();
     
     // 保存到历史记录
     setCommandHistory(prev => [...prev, command]);
     
-    // 清空输入框
     setInput('');
 
     try {
       // 发送命令到SSH会话
       sshStreamRef.current.write(command + '\n');
-      
     } catch (error) {
       setOutput(prev => prev + `\n错误: ${error.message}\n$ `);
       Alert.alert('命令执行失败', error.message);
     }
   };
 
-  /**
-   * 断开SSH连接
-   */
+  // 断开连接
   const handleDisconnect = () => {
     Alert.alert(
       '确认断开',
@@ -137,9 +122,7 @@ const TerminalScreen = ({route, navigation}) => {
     );
   };
 
-  /**
-   * 清理SSH资源
-   */
+  // 清理SSH资源
   const cleanupSSH = () => {
     try {
       if (sshStreamRef.current) {
@@ -155,7 +138,6 @@ const TerminalScreen = ({route, navigation}) => {
     }
   };
 
-  // 连接中状态
   if (connecting) {
     return (
       <View style={styles.loadingContainer}>
@@ -166,16 +148,14 @@ const TerminalScreen = ({route, navigation}) => {
   }
 
   return (
-    <View style={styles.container}>
-      {/* 终端输出区域 */}
+    <View style={globalStyles.container}>
       <ScrollView
         ref={scrollViewRef}
         style={styles.terminal}
         onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({animated: true})}>
-        <Text style={styles.terminalText}>{output}</Text>
+        <Text style={globalStyles.terminalText}>{output}</Text>
       </ScrollView>
 
-      {/* 命令输入区域 */}
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
@@ -189,10 +169,7 @@ const TerminalScreen = ({route, navigation}) => {
           editable={connected}
         />
         <TouchableOpacity
-          style={[
-            styles.sendButton,
-            !connected && styles.sendButtonDisabled,
-          ]}
+          style={[styles.sendButton, !connected && styles.sendButtonDisabled]}
           onPress={executeCommand}
           disabled={!connected}>
           <Text style={styles.sendButtonText}>发送</Text>
@@ -208,10 +185,6 @@ const TerminalScreen = ({route, navigation}) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -226,12 +199,6 @@ const styles = StyleSheet.create({
   terminal: {
     flex: 1,
     padding: spacing.md,
-  },
-  terminalText: {
-    fontFamily: 'monospace',
-    fontSize: 14,
-    color: colors.success,
-    lineHeight: 20,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -249,6 +216,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'monospace',
     marginRight: spacing.sm,
+    minHeight: 48,
   },
   sendButton: {
     backgroundColor: colors.primary,
@@ -257,9 +225,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     justifyContent: 'center',
     marginRight: spacing.sm,
+    minWidth: 60,
   },
   sendButtonDisabled: {
     backgroundColor: colors.border,
+    opacity: 0.6,
   },
   sendButtonText: {
     color: colors.text,
@@ -272,6 +242,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     borderRadius: 8,
     justifyContent: 'center',
+    minWidth: 60,
   },
   disconnectButtonText: {
     color: colors.text,
