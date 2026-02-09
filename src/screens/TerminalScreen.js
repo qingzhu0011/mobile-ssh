@@ -3,17 +3,8 @@
  */
 
 import React, {useState, useEffect, useRef} from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
-} from 'react-native';
-import {colors, spacing, globalStyles} from '../styles/styles';
+import {View, Text, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator} from 'react-native';
+import {colors, globalStyles} from '../styles/globalStyles';
 
 const TerminalScreen = ({route, navigation}) => {
   const {sshClient, connectionInfo} = route.params;
@@ -28,12 +19,10 @@ const TerminalScreen = ({route, navigation}) => {
 
   useEffect(() => {
     initSSHSession();
-    return () => {
-      cleanupSSH();
-    };
+    return () => cleanupSSH();
   }, []);
 
-  // 初始化SSH会话
+  // 初始化SSH会话：创建shell并监听数据
   const initSSHSession = async () => {
     try {
       setOutput(`连接到 ${connectionInfo.username}@${connectionInfo.host}:${connectionInfo.port}\n\n`);
@@ -42,9 +31,7 @@ const TerminalScreen = ({route, navigation}) => {
       sshClient.shell((err, stream) => {
         if (err) {
           setConnecting(false);
-          Alert.alert('错误', '无法创建终端会话', [
-            {text: '返回', onPress: () => navigation.goBack()},
-          ]);
+          Alert.alert('错误', '无法创建终端会话', [{text: '返回', onPress: () => navigation.goBack()}]);
           return;
         }
 
@@ -53,7 +40,7 @@ const TerminalScreen = ({route, navigation}) => {
         setConnecting(false);
         setOutput(prev => prev + '✓ 终端会话已建立\n\n$ ');
 
-        // 监听输出数据
+        // 监听stdout输出
         stream.on('data', (data) => {
           const text = data.toString('utf-8');
           setOutput(prev => prev + text);
@@ -63,12 +50,10 @@ const TerminalScreen = ({route, navigation}) => {
         stream.on('close', () => {
           setConnected(false);
           setOutput(prev => prev + '\n\n会话已断开\n');
-          Alert.alert('提示', 'SSH会话已断开', [
-            {text: '返回', onPress: () => navigation.goBack()},
-          ]);
+          Alert.alert('提示', 'SSH会话已断开', [{text: '返回', onPress: () => navigation.goBack()}]);
         });
 
-        // 监听错误输出
+        // 监听stderr错误输出
         stream.stderr.on('data', (data) => {
           const text = data.toString('utf-8');
           setOutput(prev => prev + text);
@@ -77,21 +62,16 @@ const TerminalScreen = ({route, navigation}) => {
 
     } catch (error) {
       setConnecting(false);
-      Alert.alert('错误', error.message, [
-        {text: '返回', onPress: () => navigation.goBack()},
-      ]);
+      Alert.alert('错误', error.message, [{text: '返回', onPress: () => navigation.goBack()}]);
     }
   };
 
-  // 执行命令
+  // 执行命令：发送到SSH会话并保存历史
   const executeCommand = () => {
     if (!input.trim() || !connected || !sshStreamRef.current) return;
 
     const command = input.trim();
-    
-    // 保存到历史记录
     setCommandHistory(prev => [...prev, command]);
-    
     setInput('');
 
     try {
@@ -103,26 +83,18 @@ const TerminalScreen = ({route, navigation}) => {
     }
   };
 
-  // 断开连接
+  // 断开连接：清理SSH资源并返回
   const handleDisconnect = () => {
-    Alert.alert(
-      '确认断开',
-      '确定要断开SSH连接吗？',
-      [
-        {text: '取消', style: 'cancel'},
-        {
-          text: '断开',
-          style: 'destructive',
-          onPress: () => {
-            cleanupSSH();
-            navigation.goBack();
-          },
-        },
-      ],
-    );
+    Alert.alert('确认断开', '确定要断开SSH连接吗？', [
+      {text: '取消', style: 'cancel'},
+      {text: '断开', style: 'destructive', onPress: () => {
+        cleanupSSH();
+        navigation.goBack();
+      }},
+    ]);
   };
 
-  // 清理SSH资源
+  // 清理SSH资源：关闭stream和client
   const cleanupSSH = () => {
     try {
       if (sshStreamRef.current) {
@@ -140,9 +112,9 @@ const TerminalScreen = ({route, navigation}) => {
 
   if (connecting) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={globalStyles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>正在初始化终端...</Text>
+        <Text style={globalStyles.loadingText}>正在初始化终端...</Text>
       </View>
     );
   }
@@ -151,14 +123,14 @@ const TerminalScreen = ({route, navigation}) => {
     <View style={globalStyles.container}>
       <ScrollView
         ref={scrollViewRef}
-        style={styles.terminal}
+        style={globalStyles.terminal}
         onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({animated: true})}>
         <Text style={globalStyles.terminalText}>{output}</Text>
       </ScrollView>
 
-      <View style={styles.inputContainer}>
+      <View style={globalStyles.inputContainer}>
         <TextInput
-          style={styles.input}
+          style={globalStyles.terminalInput}
           value={input}
           onChangeText={setInput}
           placeholder="输入命令..."
@@ -169,86 +141,17 @@ const TerminalScreen = ({route, navigation}) => {
           editable={connected}
         />
         <TouchableOpacity
-          style={[styles.sendButton, !connected && styles.sendButtonDisabled]}
+          style={[globalStyles.sendButton, !connected && globalStyles.sendButtonDisabled]}
           onPress={executeCommand}
           disabled={!connected}>
-          <Text style={styles.sendButtonText}>发送</Text>
+          <Text style={globalStyles.sendButtonText}>发送</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.disconnectButton}
-          onPress={handleDisconnect}>
-          <Text style={styles.disconnectButtonText}>断开</Text>
+        <TouchableOpacity style={globalStyles.disconnectButton} onPress={handleDisconnect}>
+          <Text style={globalStyles.disconnectButtonText}>断开</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-  },
-  loadingText: {
-    color: colors.textSecondary,
-    marginTop: spacing.md,
-    fontSize: 16,
-  },
-  terminal: {
-    flex: 1,
-    padding: spacing.md,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    padding: spacing.md,
-    backgroundColor: colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  input: {
-    flex: 1,
-    backgroundColor: colors.background,
-    color: colors.text,
-    padding: spacing.md,
-    borderRadius: 8,
-    fontSize: 14,
-    fontFamily: 'monospace',
-    marginRight: spacing.sm,
-    minHeight: 48,
-  },
-  sendButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    borderRadius: 8,
-    justifyContent: 'center',
-    marginRight: spacing.sm,
-    minWidth: 60,
-  },
-  sendButtonDisabled: {
-    backgroundColor: colors.border,
-    opacity: 0.6,
-  },
-  sendButtonText: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  disconnectButton: {
-    backgroundColor: colors.error,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    borderRadius: 8,
-    justifyContent: 'center',
-    minWidth: 60,
-  },
-  disconnectButtonText: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-});
 
 export default TerminalScreen;

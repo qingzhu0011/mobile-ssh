@@ -3,20 +3,9 @@
  */
 
 import React, {useState} from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  ActivityIndicator,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
+import {View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform} from 'react-native';
 import SSH2 from 'react-native-ssh2';
-import {colors, spacing, globalStyles} from '../styles/styles';
+import {colors, globalStyles} from '../styles/globalStyles';
 
 const LoginScreen = ({navigation}) => {
   const [host, setHost] = useState('');
@@ -25,14 +14,14 @@ const LoginScreen = ({navigation}) => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // IP格式验证
+  // 验证IP地址格式
   const validateIP = (ip) => {
     const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
     if (!ipRegex.test(ip)) return false;
     return ip.split('.').every(num => parseInt(num) >= 0 && parseInt(num) <= 255);
   };
 
-  // 表单验证
+  // 表单验证：非空+格式检查
   const validateForm = () => {
     if (!host.trim()) {
       Alert.alert('错误', '请输入服务器地址');
@@ -62,7 +51,7 @@ const LoginScreen = ({navigation}) => {
     return true;
   };
 
-  // SSH连接
+  // SSH连接核心逻辑
   const handleConnect = async () => {
     if (!validateForm()) return;
 
@@ -71,11 +60,9 @@ const LoginScreen = ({navigation}) => {
     try {
       const sshClient = new SSH2();
       
-      // Promise包装连接，10秒超时
+      // Promise包装SSH连接，10秒超时
       const connectPromise = new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          reject(new Error('连接超时'));
-        }, 10000);
+        const timeout = setTimeout(() => reject(new Error('连接超时')), 10000);
 
         sshClient.on('ready', () => {
           clearTimeout(timeout);
@@ -98,14 +85,10 @@ const LoginScreen = ({navigation}) => {
 
       const client = await connectPromise;
 
-      // 跳转到终端页，传递SSH会话实例
+      // 连接成功，跳转到终端页并传递SSH会话实例
       navigation.navigate('Terminal', {
         sshClient: client,
-        connectionInfo: {
-          host: host.trim(),
-          port: parseInt(port, 10),
-          username: username.trim(),
-        },
+        connectionInfo: {host: host.trim(), port: parseInt(port, 10), username: username.trim()},
       });
 
       setPassword('');
@@ -131,13 +114,9 @@ const LoginScreen = ({navigation}) => {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={globalStyles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled">
-        <View style={styles.content}>
+    <KeyboardAvoidingView style={globalStyles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView contentContainerStyle={globalStyles.scrollContent} keyboardShouldPersistTaps="handled">
+        <View style={globalStyles.content}>
           <Text style={globalStyles.title}>SSH 连接</Text>
           <Text style={globalStyles.subtitle}>请输入服务器信息</Text>
 
@@ -196,38 +175,17 @@ const LoginScreen = ({navigation}) => {
           </View>
 
           <TouchableOpacity
-            style={[globalStyles.button, styles.connectButton, loading && globalStyles.buttonDisabled]}
+            style={[globalStyles.button, loading && globalStyles.buttonDisabled]}
             onPress={handleConnect}
             disabled={loading}>
-            {loading ? (
-              <ActivityIndicator color={colors.text} />
-            ) : (
-              <Text style={globalStyles.buttonText}>连接</Text>
-            )}
+            {loading ? <ActivityIndicator color={colors.text} /> : <Text style={globalStyles.buttonText}>连接</Text>}
           </TouchableOpacity>
 
-          <Text style={globalStyles.hintText}>
-            提示：请确保您的设备可以访问目标服务器
-          </Text>
+          <Text style={globalStyles.hintText}>提示：请确保您的设备可以访问目标服务器</Text>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 };
-
-const styles = StyleSheet.create({
-  scrollContent: {
-    flexGrow: 1,
-  },
-  content: {
-    flex: 1,
-    padding: spacing.lg,
-    justifyContent: 'center',
-  },
-  connectButton: {
-    marginTop: spacing.lg,
-    marginBottom: spacing.md,
-  },
-});
 
 export default LoginScreen;

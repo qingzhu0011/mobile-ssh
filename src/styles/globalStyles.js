@@ -1,9 +1,10 @@
 /**
- * 全局样式定义
- * 统一应用的颜色、字体、间距等
+ * 全局样式 - 适配安卓移动端
  */
 
-import {StyleSheet} from 'react-native';
+import {StyleSheet, Dimensions} from 'react-native';
+
+const {width, height} = Dimensions.get('window');
 
 export const colors = {
   primary: '#007AFF',
@@ -24,31 +25,18 @@ export const spacing = {
   xl: 32,
 };
 
-export const typography = {
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  body: {
-    fontSize: 16,
-    color: colors.text,
-  },
-  caption: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  monospace: {
-    fontFamily: 'monospace',
-    fontSize: 14,
-    color: colors.success,
-  },
-};
-
 export const globalStyles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  content: {
+    flex: 1,
+    padding: spacing.lg,
+    justifyContent: 'center',
   },
   input: {
     backgroundColor: colors.surface,
@@ -58,12 +46,15 @@ export const globalStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     fontSize: 16,
+    minHeight: 48,
   },
   button: {
     backgroundColor: colors.primary,
     padding: spacing.md,
     borderRadius: 8,
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
   },
   buttonText: {
     color: colors.text,
@@ -72,5 +63,112 @@ export const globalStyles = StyleSheet.create({
   },
   buttonDisabled: {
     backgroundColor: colors.border,
+    opacity: 0.6,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: spacing.sm,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
+    textAlign: 'center',
+  },
+  label: {
+    fontSize: 14,
+    color: colors.text,
+    marginBottom: spacing.sm,
+    fontWeight: '600',
+  },
+  inputGroup: {
+    marginBottom: spacing.md,
+  },
+  hintText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: spacing.md,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+  },
+  loadingText: {
+    color: colors.textSecondary,
+    marginTop: spacing.md,
+    fontSize: 16,
+  },
+  terminal: {
+    flex: 1,
+    padding: spacing.md,
+  },
+  terminalText: {
+    fontFamily: 'monospace',
+    fontSize: 13,
+    color: colors.success,
+    lineHeight: 18,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    padding: spacing.md,
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  terminalInput: {
+    flex: 1,
+    backgroundColor: colors.background,
+    color: colors.text,
+    padding: spacing.md,
+    borderRadius: 8,
+    fontSize: 14,
+    fontFamily: 'monospace',
+    marginRight: spacing.sm,
+    minHeight: 48,
+  },
+  sendButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    borderRadius: 8,
+    justifyContent: 'center',
+    marginRight: spacing.sm,
+    minWidth: 60,
+  },
+  sendButtonDisabled: {
+    backgroundColor: colors.border,
+    opacity: 0.6,
+  },
+  sendButtonText: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  disconnectButton: {
+    backgroundColor: colors.error,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    borderRadius: 8,
+    justifyContent: 'center',
+    minWidth: 60,
+  },
+  disconnectButtonText: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
+
+export const responsive = {
+  isSmallScreen: width < 360,
+  isMediumScreen: width >= 360 && width < 768,
+  isLargeScreen: width >= 768,
+  screenWidth: width,
+  screenHeight: height,
+};
